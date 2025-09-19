@@ -15,6 +15,7 @@ import com.iflytek.cloud.RecognizerResult;
 import com.iflytek.cloud.SpeechConstant;
 import com.iflytek.cloud.SpeechError;
 import com.iflytek.cloud.SpeechRecognizer;
+import com.iflytek.cloud.SpeechUtility;
 import com.iflytek.cloud.VoiceWakeuper;
 import com.iflytek.cloud.WakeuperListener;
 import com.iflytek.cloud.WakeuperResult;
@@ -32,24 +33,32 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SpeechControl implements PlayUtil.PlayComplete {
     private final String TAG = "SpeechControl";
-    private static SpeechControl instance;
+    private static boolean mscInitialize = false;
     private Context mContext;
     private boolean isDistinguish = false;// 识别中
     private boolean voiceStatus = false; //是否写入识别音频
     private AtomicBoolean isInit = new AtomicBoolean(false);
     private Handler mHandler = new Handler();
 
-    public static SpeechControl getInstance() {
-        if (instance == null) {
-            instance = new SpeechControl();
+    private void initializeMsc(Context context) {
+        if (mscInitialize) {
+            Log.w(TAG, "Msc Already Init!");
+            return;
         }
-        return instance;
+        StringBuffer buffer = new StringBuffer();
+        buffer.append("appid=" + context.getString(R.string.app_id));
+        buffer.append(",");
+        buffer.append(SpeechConstant.ENGINE_MODE + "=" + SpeechConstant.MODE_MSC);
+        SpeechUtility.createUtility(context, buffer.toString());
+        mscInitialize = true;
+        Log.i(TAG, "初始化Msc");
     }
 
     public void init(Context context) {
         if (isInit.get()) return;
         isInit.set(true);
         mContext = context;
+        initializeMsc(context);
         PlayUtil.setPlayComplete(this);
         initRecognizer();
         initWakeup();
@@ -100,7 +109,7 @@ public class SpeechControl implements PlayUtil.PlayComplete {
     }
 
     //初始化语音唤醒
-    public void initWakeup() {
+    private void initWakeup() {
         mIvw = VoiceWakeuper.createWakeuper(mContext, null);
         // 清空参数
         mIvw.setParameter(SpeechConstant.PARAMS, null);
@@ -132,7 +141,7 @@ public class SpeechControl implements PlayUtil.PlayComplete {
         @Override
         public void onBeginOfSpeech() {
             Log.i(TAG, "语音唤醒开始");
-            if (wakeupCallback != null) wakeupCallback.onBeginOfSpeech();
+            if (wakeupCallback != null) wakeupCallback.wakeupBegin();
         }
 
         @Override
@@ -182,12 +191,13 @@ public class SpeechControl implements PlayUtil.PlayComplete {
             }
             isDistinguish = true;
             PlayUtil.play(mContext, R.raw.start_recognize_voice);
-            if (wakeupCallback != null) wakeupCallback.onResult(resultString);
+            if (wakeupCallback != null) wakeupCallback.wakeupResult(resultString);
         }
 
         @Override
         public void onError(SpeechError speechError) {
             Log.e(TAG, "语音唤醒出错! 错误码:" + speechError.getErrorCode());
+            if (wakeupCallback != null) wakeupCallback.wakeupError(speechError.getErrorCode(), speechError.getErrorDescription());
         }
 
         @Override
@@ -321,7 +331,7 @@ public class SpeechControl implements PlayUtil.PlayComplete {
                 String string = text.substring(text.lastIndexOf("置信度") + 4, text.length() - 1);
                 try {
                     if (Integer.parseInt(string) > 50) {//置信度大于50
-                        if (recognizeCallback != null) recognizeCallback.onResult(text);
+                        if (recognizeCallback != null) recognizeCallback.recognizeResult(text);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -332,7 +342,7 @@ public class SpeechControl implements PlayUtil.PlayComplete {
         @Override
         public void onEndOfSpeech() {
             Log.i(TAG, "语音识别结束");
-            if (recognizeCallback != null) recognizeCallback.onEndOfSpeech();
+            if (recognizeCallback != null) recognizeCallback.recognizeEnd();
             PlayUtil.play(mContext, R.raw.end_recognize_voice);
             stopRecognize();
             startWakeup();
@@ -341,14 +351,14 @@ public class SpeechControl implements PlayUtil.PlayComplete {
         @Override
         public void onBeginOfSpeech() {
             Log.i(TAG, "语音识别开始");
-            if (recognizeCallback != null) recognizeCallback.onBeginOfSpeech();
+            if (recognizeCallback != null) recognizeCallback.recognizeBegin();
         }
 
         @Override
         public void onError(SpeechError error) {
             Log.i(TAG, "语音识别出错 错误码:" + error.getErrorCode());
             if (recognizeCallback != null)
-                recognizeCallback.onError(error.getErrorCode(), error.getErrorDescription());
+                recognizeCallback.recognizeError(error.getErrorCode(), error.getErrorDescription());
             isDistinguish = false;
             stopRecognize();
             startWakeup();
@@ -371,7 +381,7 @@ public class SpeechControl implements PlayUtil.PlayComplete {
      *
      * @return
      */
-    public boolean setRecognizeParam() {
+    private boolean setRecognizeParam() {
         boolean result = false;
         // 清空参数
         mAsr.setParameter(SpeechConstant.PARAMS, null);

@@ -1,8 +1,8 @@
 package com.smarteye.speech.sdk;
 
 public interface RecognizeCallback {
-    void onBeginOfSpeech();
-    void onEndOfSpeech();
-    void onResult(String result);
-    void onError(int errorCode, String errorMessage);
+    void recognizeBegin();
+    void recognizeEnd();
+    void recognizeResult(String result);
+    void recognizeError(int errorCode, String errorMessage);
 }

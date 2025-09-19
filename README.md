@@ -1,2 +1,6 @@
 # SpeechSDK
 科大讯飞旧版语音唤醒/离线命令词识别SDK
+
+需要在values/strings.xml中添加你自己的key
+如若需要更换唤醒词 请在官网下载SDK后将assets中的ivw文件夹替换，以及替换新的so库和jar包
+离线命令词请自己编辑assets中的call.bnf文件
