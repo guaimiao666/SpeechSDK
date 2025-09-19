@@ -1,0 +1,33 @@
+#BNF+IAT 1.0 UTF-8;
+!grammar call;
+!slot <Photo>;
+!slot <StartRecord>;
+!slot <StopRecord>;
+!slot <OpenLed>;
+!slot <CloseLed>;
+!slot <OpenLaser>;
+!slot <CloseLaser>;
+!slot <CloseLed1>;
+!slot <OpenLed1>;
+
+!start <Commands>;
+
+<Commands>:<Photo>//拍照验电
+           |<StartRecord>//开始录像
+           |<StopRecord>//结束录像
+           |<OpenLed>//打开照明
+           |<CloseLed>//关闭照明
+           |<OpenLaser>//打开激光
+           |<CloseLaser>//关闭激光
+           |<CloseLed1>//关闭手电筒
+           |<OpenLed1>//打开手电筒
+;
+<Photo>:拍照;
+<StartRecord>:开启录像;
+<StopRecord>:关闭录像;
+<OpenLed>:打开手电筒;
+<CloseLed>:关闭手电筒;
+<OpenLaser>:打开激光灯;
+<CloseLaser>:关闭激光灯;
+<CloseLed1>:关灯;
+<OpenLed1>:开灯;
